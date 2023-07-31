@@ -14,18 +14,8 @@ This is a FreeCAD WB inspired from microelly2 work on  **freecad-nurbs** workben
 
 ### Rationale ###
 
-It is a long term project as the original micorelly WB has some flaws:
-
-  * Is not adapted to python3.
-  
-  * Custom interface (miki) is not working anymore.
-  
-  * Many images are lacking and some test present are relying on absent test files.
-  
-  * There is not trace of the german manual that was supposed to explain some things.
-
-
-So a total rewrite is needed, after some hour of work on the WB as it was, it is probably better to rework if from the base, adding things gradually.
+After some hour of work on the WB as it was, and banging
+my head with old code I've resolved in doing a complete rewrite.
 
 ### Acknowledgement ###
 
