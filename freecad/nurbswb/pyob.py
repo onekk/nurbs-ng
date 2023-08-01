@@ -1,8 +1,15 @@
-"""Nurbs Feature Python Objects.
+"""Nurbs WB - Next Generation
+
+Filename:
+    pyob.py
+
+Inspired from microelly work on freecad-nurbswb
+
+
+Portions of code from microelly (c) 2016 - 2019.
 
 Versions:
-    v 0.1 - 2017 microelly
-    v 0.2 - 2023 onekk
+    v 0.1 - 2023 onekk
 
 Licence:
     GNU Lesser General Public License (LGPL)
@@ -228,12 +235,12 @@ def _Sketch(FeaturePython):
         print(f"_Sketch Label: {obj.Label}")
 
 
-def _Sheet(FeaturePython):
+def _Sheet(NurbsFPO):
     """Docstring missing."""
 
     def __init__(self, obj):
         """Docstring missing."""
-        NUrbdFPO.__init__(self, obj)
+        NurbsFPO.__init__(self, obj)
 
 
 def Sketch(name="MySketch"):

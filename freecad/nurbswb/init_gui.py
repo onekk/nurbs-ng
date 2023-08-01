@@ -1,7 +1,15 @@
-"""FreeCAD Nurbs WorkBench Next Generation.
+"""Nurbs WB - Next Generation
+
+Filename:
+    init_gui.py
+
+Inspired from microelly work on freecad-nurbswb
+
+
+Portions of code from microelly (c) 2016 - 2019.
 
 Versions:
-    v 0.1 - 2023 onekk - nurbs-ng
+    v 0.1 - 2023 onekk
 
 Licence:
     GNU Lesser General Public License (LGPL)
@@ -24,15 +32,12 @@ import FreeCADGui
 
 import freecad.nurbswb
 
-from freecad.nurbswb import ICONPATH
-
-global __dir__
-__dir__ = os.path.dirname(freecad.nurbswb.__file__)
 
 fc_msg = FreeCAD.Console.PrintMessage
 fc_wrn = FreeCAD.Console.PrintWarning
 fc_err = FreeCAD.Console.PrintError
 
+ICONPATH = os.path.join(os.path.dirname(__file__), "resources", "icons")
 
 # print(f"ICONPATH: {ICONPATH}")
 
@@ -521,10 +526,10 @@ if FreeCAD.GuiUp:
     cg1 = "N_Bezier"
 
     c2a([cg1, "create"], always, "Nurbs Editor", "nurbs", "Test cylinder noisy",
-            "zebra.svg", "runtcn()")
-    
+        "zebra.svg", "runtcn()")
+
     c2a([cg1, "create"], always, "Nurbs Editor", "nurbs", "Test cylinder plain",
-            "zebra.svg", "runtcp()")
+        "zebra.svg", "runtcp()")
 
 # --- Command Definition
 
@@ -535,7 +540,7 @@ class NurbsWorkbench(FreeCADGui.Workbench):
     MenuText = "Nurbs WB"
     ToolTip = "Nurbs Editing"
 
-    Icon =  '''
+    Icon = '''
 /* XPM */
 static char * nurbs_xpm[] = {
 "16 16 2 1",

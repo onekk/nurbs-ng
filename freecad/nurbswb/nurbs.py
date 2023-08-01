@@ -1,6 +1,8 @@
 """Nurbs editor.
 
-idea from  FreeCAD TemplatePyMod module by (c) 2013 Werner Mayer LGPL
+Inspired from microelly freecad-nurbbs.
+
+Some portions of code are derived from microelly code.
 
 https://en.wikipedia.org/wiki/Non-uniform_rational_B-spline
 http://www.opencascade.com/doc/occt-6.9.0/refman/html/class_geom___b_spline_surface.html
@@ -12,13 +14,15 @@ Notes:
        see examples/example_nparray.py for some explanation
 
     2) Crish_G in https://forum.freecad.org/viewtopic.php?p=561221#p561221
-       Weights are the 'w' coordinates of the poles, in rational BSplines.
+
        In homogeneous coordinates, the poles are 4D : (x, y, z, w)
+       In rational BSplines.Weights are the 'w' coordinates of the poles.
        So always: len(weights) = len(poles)
 
        Mults are repetition of knots.
        So always: len(mults) = len(knots).
-       Most often Nurbs articles, knots arrays are written WITH knot repetition.
+
+       Most often in Nurbs articles, knots arrays are written WITH knot repetition.
        In OpenCascade, knots are described by 2 arrays:
        - knots (without repetition)
        - mults.
@@ -32,17 +36,33 @@ Notes:
         knots = [0.0, 1.0, 2.0]
         mults = [3, 1, 3] # OCC and FreeCAD way
 
+    3) From OCCT docs:
+        Creates a non-rational b-spline surface (weights default value is 1.).
+
+        Following conditions must be verified.
+          - 0 < UDegree <= MaxDegree.
+          - UKnots.Length() == UMults.Length() >= 2
+          - UKnots(i) < UKnots(i+1) (Knots are increasing)
+          - 1 <= UMults(i) <= UDegree
+          - On non Uperiodic surface the first and last umultiplicities may be
+            UDegree+1 (this is even recommended if you want the curve to start and
+            finish on the first and last pole).
+           - On Uperiodic surfaces first and last umultiplicities must be the same.
+           - On non-uperiodic surfaces:
+             Poles.ColLength() == Sum(UMults(i)) - UDegree - 1 >= 2
+           - On Uperiodic surfaces Poles.ColLength() == Sum(UMults(i)) except first
+             or last.
+           - Previous conditions for U holds also for V, with the RowLength of poles.
 
 Versions:
-    v 0.3 - 2016 microelly
-    v 0.4 - 2023 onekk
+    v 0.1 - 2023 onekk
 
 Licence:
     GNU Lesser General Public License (LGPL)
 
 """
 
-__version__ = "0.4"
+__version__ = "0.1"
 
 
 import time
@@ -60,33 +80,8 @@ import freecad.nurbswb.nurbs_dialog  # noqa
 
 from freecad.nurbswb.nurbs_tools import ensure_document, clear_doc, setview  # noqa
 
-from pivy import coin
 
 import PySide
-
-if 0:  # change render to show triangulations
-    view = FreeCADGui.ActiveDocument.ActiveView
-    viewer = view.getViewer()
-    render = viewer.getSoRenderManager()
-
-    glAction = coin.SoGLRenderAction(render.getViewportRegion())
-    render.setGLRenderAction(glAction)
-    render.setRenderMode(render.WIREFRAME_OVERLAY)
-
-
-def setNice(flag=True):
-    """Make smooth skins."""
-    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Part")
-    w = p.GetFloat("MeshDeviation")
-    print(f"Actual MeshDeviation: {w}")
-
-    if flag:
-        p.SetFloat("MeshDeviation", 0.05)
-    else:
-        p.SetFloat("MeshDeviation", 0.5)
-
-
-# setNice()
 
 
 class NurbsObj:

@@ -1,14 +1,20 @@
-"""Nurbs tools.
+"""Nurbs WB - Next Generation
+
+Filename:
+    nurbs_tools.py
+
+Inspired from microelly work on freecad-nurbswb
+
+
+Portions of code from microelly (c) 2016 - 2019.
 
 Versions:
-    v 0.1 - 2018 microelly
-    v 0.2 - 2023 onekk
+    v 0.1 - 2023 onekk
 
 Licence:
     GNU Lesser General Public License (LGPL)
 
 """
-
 
 import os
 import math
@@ -20,10 +26,10 @@ from FreeCAD import Placement, Rotation
 
 import Part
 
+from pivy import coin
 
 V2d = FreeCAD.Base.Vector2d
 V3d = FreeCAD.Vector
-
 
 
 # SERVICE METHODS
@@ -45,7 +51,7 @@ def clear_doc(doc_name):
         while len(doc.Objects) > 0:
             doc.removeObject(doc.Objects[0].Name)
     except Exception as e:
-        print(f'Exception: {e}')
+        print(f"Exception: {e}")
 
 
 def ensure_document(doc_name, action=0):
@@ -73,7 +79,7 @@ def ensure_document(doc_name, action=0):
         print(f"ED: doc name = {d_name}")
 
         if d_name == doc_name:
-            #print("Match name")
+            # print("Match name")
             if action == 1:
                 # when using clear_doc() is not possible like in Part.Design
                 FreeCAD.closeDocument(doc_name)
@@ -115,7 +121,7 @@ def setview(doc_name, t_v=0):
     FreeCADGui.ActiveDocument = FreeCADGui.getDocument(doc_name)
     VIEW = FreeCADGui.ActiveDocument.ActiveView
 
-    #print(dir(VIEW))
+    # print(dir(VIEW))
 
     if t_v == 0:
         VIEW.viewTop()
@@ -130,31 +136,55 @@ def setview(doc_name, t_v=0):
 
 # microelly2 methods
 
+# from original nurbs.py
+
+def set_coin_render():
+    """Change render to show triangulations."""
+    view = FreeCADGui.ActiveDocument.ActiveView
+    viewer = view.getViewer()
+    render = viewer.getSoRenderManager()
+
+    glAction = coin.SoGLRenderAction(render.getViewportRegion())
+    render.setGLRenderAction(glAction)
+    render.setRenderMode(render.WIREFRAME_OVERLAY)
+
+
+def setNice(flag=True):
+    """Make smooth skins."""
+    p = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Part")
+    w = p.GetFloat("MeshDeviation")
+    print(f"Actual MeshDeviation: {w}")
+
+    if flag:
+        p.SetFloat("MeshDeviation", 0.05)
+    else:
+        p.SetFloat("MeshDeviation", 0.5)
+
 
 def showIsoparametricUCurve(bsplinesurface, u=0.5):
-    """create a curve in 3D space"""
+    """Create a curve in 3D space."""
     bc = bsplinesurface.uIso(u)
     Part.show(bc.toShape())
 
 
 def showIsoparametricVCurve(bsplinesurface, v=0.5):
-    """create a curve in 3D space"""
+    """Create a curve in 3D space."""
     bc = bsplinesurface.vIso(v)
     Part.show(bc.toShape())
 
 
 # nurbswb lib
-# sammlung von funktionen
 
 
-def kruemmung(sf, u, v):
-    """calculate  curvature"""
-    # aus tripod_2.py
+def surf_curvature(sf, u, v):
+    """Calculate Surface Curvature at point."""
     d = 0.01
     d = 0.0001
+    
     t1, t2 = sf.tangent(u, v)
-    if t1 == None or t2 == None:
-        print(("keine Tagenten fuer ", u, v))
+    
+    if t1 is None or t2 is None:
+        print("No tangent for {u},{v}")
         return -1, -1
 
     t1 = t1.multiply(d)

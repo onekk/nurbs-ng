@@ -1,0 +1,4 @@
+In root directory, issue:
+
+sphinx-apidoc -o source ./freecad/nurbswb/
+make html
