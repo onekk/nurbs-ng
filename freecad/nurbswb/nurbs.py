@@ -18,73 +18,7 @@ Notes:
 
     2) BSplines and NURBS (Non Uniform Rational Bspline Surface)
 
-      BSS is a short term for "BSpline Surface"
 
-      When Weights are different from 1 we have a NURBS, ie the surface
-       is Rational.
-      Rational characteristic is defined in each parametric direction (U, V).
-
-      Definitions:
-        Poles:
-          Poles are alos called "control points".
-
-        Weights:
-          In homogeneous coordinates, the poles are 4D : (x, y, z, w)
-          In NURBS Weights are the 'w' coordinates of the poles.
-          So always: len(weights) = len(poles)
-
-        Knots is a sequence of parameter values that determines where and
-          how Poles affect the NURBS curve.
-          Knot vector should be in non decreasing order.
-          Number of knots = Numpoles + degree + 1.
-
-          Most often in Nurbs articles, knots arrays are written WITH knot
-          repetition, in OpenCascade, knots are described by 2 arrays:
-            - knots (without repetition)
-            - multiplicities, see below.
-
-        Multiplicities (Mults) are repetition of knots.
-          So always: len(mults) = len(knots).
-          1 <= Mults(i) <= Degree
-
-          This knots vector = [0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0] written
-          in Traditional way will became:
-            knots = [0.0, 1.0, 2.0]
-            mults = [3, 1, 3]
-
-        Mults could have some special cases, where the knots are regularly
-          spaced in one parametric direction (PD) in other word difference
-          between two consecutive knots is constant.
-
-          - "Uniform": all the mults are equal to 1.
-          - "Quasi-uniform": all the mults are equal to 1, except for first
-             and last knots, and these are equal to Degree + 1.
-          - "Piecewise Bezier": all the mults are equal to Degree except for
-             first and last knots, which are equal to Degree + 1.
-             Resulting surface is a concatenation of Bezier patches in PD.
-
-         In "not periodic" surface:
-           - bounds of knots and mults tables are:  1 < knot < NbKnots
-              where NbKnots is the number of knots of the BSS in parametric
-              direction.
-          - first and last mults may be UDegree+1 (this is recommended if you
-              want the curve to start and finish on the first and last pole).
-          - Poles.ColLength() == Sum(UMults(i)) - UDegree - 1 >= 2 (for U)
-          - Poles.RowLength() == Sum(VMults(i)) - VDegree - 1 >= 2 (for U)
-
-         In "periodic" surfaces:
-          - first and last mults must be the same.
-          - given k periodic knots and p periodic poles in PD:
-              - period is such that: period = Knot(k+1) - Knot(1),
-              - poles and knots tables in PD can be considered as infinite tables,
-                such that:
-                  - Knot(i + k) = Knot(i) + period,
-                  - Pole(i + p) = Pole(i)
-          - Poles.ColLength() == Sum(UMults(i)) except first or last. (for U)
-          - Poles.RowLength() == Sum(VMults(i)) except first or last. (for V)
-
-         Note: Data structure tables for a periodic BSpline surface are more complex
-           than those of a non-periodic one.
 
 Versions:
     v 0.1 - 2023 onekk

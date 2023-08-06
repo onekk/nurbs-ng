@@ -1,0 +1,170 @@
+% arara: pdflatex: { shell: true, options: [-halt-on-error] }
+% arara: pdflatex: { shell: true }
+% arara: pdflatex: { synctex: true, shell: true }
+
+\documentclass[a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+% Unicode
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{
+	unicode,
+%	colorlinks,
+%	breaklinks,
+%	urlcolor=cyan,
+%	linkcolor=blue,
+	pdfauthor={Carlo Dormeletti (onekk)},
+	pdftitle={Nurbs-NG notes.},
+	pdfsubject={Nurbs-ng introduction and notes},
+	pdfkeywords={nurbs},
+	pdfproducer={LaTeX},
+	pdfcreator={pdflatex}
+}
+
+\usepackage{graphicx, color}
+\graphicspath{{fig/}}
+
+
+
+\begin{document}
+% Author info
+\title{Nurbs-NG notes.}
+\author{Carlo Dormeletti (onekk)}
+
+\date{
+% $^1$Organization 1 \\ \texttt{\{auth1, auth3\}@org1.edu}\\%
+% $^2$Organization 2 \\ \texttt{auth3@inst2.edu}\\[2ex]%
+\today
+}
+
+\maketitle
+
+\begin{abstract}
+   These are mostly personal notes about Nurbs WB, mostly theoretical intro to BSplines and some
+   notes to not pollute the code too much.
+\end{abstract}
+
+This work is shared under a \href{https://creativecommons.org/licenses/by-sa/4.0/}{CC BY-SA 4.0 license} unless otherwise noted
+
+\tableofcontents
+
+\section{Introduction}
+\label{sec:intro}
+
+
+\href{https://en.wikipedia.org/wiki/Non-uniform_rational_B-spline}{https://en.wikipedia.org/wiki/Non-uniform\_rational\_B-spline}
+
+\bigskip
+This post from by Crish\_G:
+\href{https://forum.freecad.org/viewtopic.php?p=561221#p561221}{https://forum.freecad.org/viewtopic.php?p=561221\#p561221}
+
+\bigskip
+\href{http://www.opencascade.com/doc/occt-6.9.0/refman/html/class_geom___b_spline_surface.html}{OCCT Geom.BSplineSurface documentation.}
+
+
+\bigskip
+
+
+NURBS will stand for \textbf{N}on \textbf{U}niform \textbf{R}ationale \textbf{B}spline \textbf{S}urface.
+
+Nurbs are a special case of rational B-splines, just as uniform B-splines are a special case of non-uniform B-splines. Thus, the term Nurbs encompass almost every other possible 3D shape definition.
+
+These Surfaces are defined by some data:
+
+\begin{description}
+  \item[Poles] are also called "control points".
+  \item[Knots] a sequence of parameter values that determines where and how Poles affect the final surface.
+  \item[Multiplicities] are repetition of knots.
+  \item[Weights] When Weights are different from 1 we have a NURBS, ie the surface is Rational.
+\end{description}
+
+
+BSplines are special calculated curves derived from mathematical equations, so complex curves could be described and calculated using a limited set o parameter.
+
+Descritpion below could use even Curves instead of Surface, there is not more differences in concepts, and usually most theory is referred to curves and then Generalized in the U, V parametric space.
+
+There are n + 1 control points, ${\bf P}_1, {\bf P}_2, \ldots, {\bf P}_{n+1}$. The Ni,k basis functions are of order k(degree k-1). k must be at least 2 (linear), and can be no more than n+1 (the number of control points). The order of the curve (linear, quadratic, cubic,...) is not dependent on the number of control points.
+
+For most part of the description you could think a BSpline Surface as the result of a net of Bspline Curves in U and V parametric direction.
+
+\subsection{Knots}
+The knot vector can, by its definition, be any sequence of numbers provided that each one is greater than or equal to the preceding one. In simple words Knot vector should be in non decreasing order.
+
+Number of knots = Numpoles + degree + 1.
+
+Most often in Nurbs articles, knots arrays are written WITH knot repetition, in OpenCascade, knots are described by 2 arrays:
+\begin{enumerate}
+  \item knots (without repetition)
+  \item multiplicities, see below.
+\end{enumerate}
+
+
+\subsection{Weights}
+Rational characteristic is defined in each parametric direction (U, V), in other word a NURBS could be rational in U but not in V or the other opposite.
+
+Rational B-splines are defined simply by applying the B-spline equation to homogeneous coordinates, rather than normal 3D coordinates.
+
+This lead that in Nurbs poles could be written in homogeneous coordinates 4D : (x, y, z, w), where 'w' is the weight associated to a pole.
+\smallskip
+
+This means that always: len(weights) = len(poles)
+
+
+\subsection{Multiplicities}
+Shorted in \emph{Mults}  
+So always: len(mults) = len(knots).
+
+1 <= Mults(i) <= Degree
+
+This knots vector = [0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0] written in Traditional way will became:
+
+\bigskip
+knots = [0.0, 1.0, 2.0]
+\bigskip
+
+mults = [3, 1, 3]
+\bigskip
+
+Mults could have some special cases, where the knots are regularly spaced in one parametric direction; in other word difference between two consecutive knots is constant.
+
+\begin{description}
+  \item[Uniform]: all the mults are equal to 1.
+  \item[Quasi-uniform]: all the mults are equal to 1, except for first and last knots, and these are equal to Degree + 1.
+  \item[Piecewise Bezier]: all the mults are equal to Degree except for first and last knots, which are equal to Degree + 1. Resulting surface is a concatenation of Bezier patches in PD.
+\end{description}
+
+
+\section{Some considerations}
+
+In "not periodic" surface:
+
+\begin{itemize}
+  \item bounds of knots and mults tables are:  1 < knot < NbKnots
+where NbKnots is the number of knots of the BSS in parametric
+direction.
+  \item first and last mults may be Degree+1 (this is recommended if you
+want the curve to start and finish on the first and last pole).
+  \item Poles.ColLength() == Sum(UMults(i)) - UDegree - 1 >= 2 (for U)
+  \item Poles.RowLength() == Sum(VMults(i)) - VDegree - 1 >= 2 (for U)
+\end{itemize}
+
+
+In "periodic" surfaces:
+
+\begin{itemize}
+  \item first and last mults must be the same.
+  \item given k periodic knots and p periodic poles in para,etric direction:
+  \item period is such that: period = Knot(k+1) - Knot(1),
+  \item poles and knots tables in PD can be considered as infinite tables, such that:
+  \begin{itemize}
+    \item Knot(i + k) = Knot(i) + period,
+    \item Pole(i + p) = Pole(i)
+  \end{itemize}
+  \item Poles.ColLength() == Sum(UMults(i)) except first or last. (for U)
+  \item Poles.RowLength() == Sum(VMults(i)) except first or last. (for V)
+\end{itemize}
+
+Note: Data structure tables for a periodic BSpline surface are more complex than those of a non-periodic one.
+
+\end{document}
