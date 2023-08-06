@@ -16,7 +16,9 @@ Notes:
     1) numpy array are stored sequentially for a very fast acces
        see examples/example_nparray.py for some explanation
 
-    2) BSplines and NURBS (Non Uniform Rational Bspline Surface)
+    2) BSplines and NURBS (Non Uniform Rational Bspline Surface) are descibed
+       in  docs/Latex/NURBS.pdf 
+
 
 
 
