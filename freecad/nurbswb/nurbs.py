@@ -17,10 +17,7 @@ Notes:
        see examples/example_nparray.py for some explanation
 
     2) BSplines and NURBS (Non Uniform Rational Bspline Surface) are descibed
-       in  docs/Latex/NURBS.pdf 
-
-
-
+       in  docs/Latex/NURBS.pdf
 
 Versions:
     v 0.1 - 2023 onekk
@@ -90,6 +87,11 @@ class VP_NurbsObj:
         obj.Proxy = self
         self.Object = obj
         return
+
+    def claimChildren(self):
+        """Docstring missing."""
+        pass
+        #return self.Object.InList
 
     def updateData(self, fp, prop):
         """Handle a property change in the handled feature."""
@@ -261,27 +263,24 @@ class Nurbs(NurbsObj):
         obj.baseHeight = 100
 
         if obj.expertMode:
-            for elem in ["degree_u", "degree_v", "poles",
-                         "knot_u", "knot_v", "nNodes_u", "nNodes_v",
-                         "weights", "solid",]:
-                obj.setEditorMode(elem, 0)
+            self.vis_prop1(obj, 0)
 
         if obj.generatePoles:
-            for elem in ["nNodes_u", "nNodes_v"]:
-                obj.setEditorMode(elem, 0)
+            # only ["nNodes_u", "nNodes_v"] in original code
+            self.vis_prop2(obj, 0)
 
-        self.hide_var_prop(obj)
+        self.set_var_prop(obj, 0)
 
-    def hide_var_prop(self, obj):
+    def set_var_prop(self, obj, vp3):
         """Hide variable properties.
 
-        Variable properties are those that are not neede for some models.
+        Variable properties are usually hidden.
         """
         # not gui editable for now
-        for elem in ["polnumber", "polselection", "gridobj",
-                     "polgrid", "polobj"]:
+        for elem in ["polnumber", "polselection", "gridobj", "polgrid",
+                     "polobj", "Height"]:
             # 0 to make editable for testing
-            obj.setEditorMode(elem, 2)
+            obj.setEditorMode(elem, vp3)
 
     def hide_mod_prop(self, obj):
         """Hide model dependant properties."""
@@ -424,28 +423,29 @@ class Nurbs(NurbsObj):
         elif prop == "expertMode":
 
             if fp.expertMode:
-                v = 0
+                vp1 = 0
             else:
-                v = 2
+                vp1 = 2
 
-            for a in ["degree_u", "degree_v", "poles", "knot_u",
-                      "knot_v", "nNodes_u", "nNodes_v", "weights",]:
-                try:
-                    fp.setEditorMode(a, v)
-                except:
-                    pass
+            try:
+                self.vis_prop1(fp, vp1)
+            except:
+                # debug message to see if something fails
+                print("onChanged except vp1")
+                pass
 
         elif prop == "generatePoles":
             if fp.generatePoles:
-                v = 0
+                vp2 = 0
             else:
-                v = 2
+                vp2 = 2
 
-            for a in ["nNodes_u", "nNodes_v", "stepU", "stepV"]:
-                try:
-                    fp.setEditorMode(a, v)
-                except:
-                    pass
+            try:
+                self.vis_prop2(fp, vp2)
+            except:
+                # debug message to see if something fails
+                print("onChanged except vp1")
+                pass
 
         elif prop in ("stepU", "stepV", "nNodes_u", "nNodes_v"):
             a = FreeCAD.ActiveDocument.Nurbs
@@ -509,26 +509,33 @@ class Nurbs(NurbsObj):
         a.Proxy.update(fp)
 
         if fp.expertMode:
-            v = 0
+            vp1 = 0
         else:
-            v = 2
+            vp1 = 2
 
-        for a in ["degree_u", "degree_v", "poles", "knot_u", "knot_v",
-                  "nNodes_u", "nNodes_v", "weights",]:
-            fp.setEditorMode(a, v)
+        self.vis_prop1(fp, vp1)
 
         if fp.generatePoles:
-            v = 0
+            vp2 = 0
         else:
-            v = 2
+            vp2 = 2
 
+        self.vis_prop2(fp, vp2)
+
+        # TODO: check if these has to be visualized or not
+        # set to 2 to not visualize
+        self.set_vr_prop(fp, 0)
+
+    def vis_prop1(self, fp, vp1):
+        """Set visibility of properties."""
+        for a in ["degree_u", "degree_v", "poles", "knot_u", "knot_v",
+                  "nNodes_u", "nNodes_v", "weights",]:
+            fp.setEditorMode(a, vp1)
+
+    def vis_prop2(self, fp, vp2):
+        """Set visibility of properties."""
         for a in ["nNodes_u", "nNodes_v", "stepU", "stepV"]:
-            fp.setEditorMode(a, v)
-
-        # Do not visulize for now
-        for a in ["polnumber", "Height", "polselection", "gridobj",
-                  "polgrid", "polobj",]:
-            fp.setEditorMode(a, 2)
+            fp.setEditorMode(a, vp2)
 
     def create_grid_shape(self, ct=20):
         """Create a grid of BSplineSurface bs with ct lines and rows."""
@@ -1163,6 +1170,7 @@ class Nurbs(NurbsObj):
             if obj.gridobj is not None:
                 vis = obj.gridobj.ViewObject.Visibility
                 FreeCAD.ActiveDocument.removeObject(obj.gridobj.Name)
+
             obj.gridobj = self.create_grid(bs, obj.gridCount)
             obj.gridobj.Label = "Nurbs Grid"
             obj.gridobj.ViewObject.Visibility = vis
@@ -2292,13 +2300,13 @@ def runtcp():
 
 def runtest2():
     """Docstring missing."""
-    # testRandomB()  # OK
+    testRandomB()  # OK
     # Cylinder with random noise
-    #testCylinder(None, True, "noisy", False)  # OK
+    # testCylinder(None, True, "noisy", False)  # OK
     # Cylinder without noise.
     # testCylinder(None, False, "plain", True)  # OK
     # Test sphere
-    testSphere(None, False, "plain", False)  # OK
+    # testSphere(None, False, "plain", False)  # OK
     # Test torus
     # testTorus(None, True, "noisy", False)  # FAIL
 
