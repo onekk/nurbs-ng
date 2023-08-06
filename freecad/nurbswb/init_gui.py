@@ -30,8 +30,7 @@ import importlib
 import FreeCAD
 import FreeCADGui
 
-import freecad.nurbswb
-
+# import freecad.nurbswb
 
 fc_msg = FreeCAD.Console.PrintMessage
 fc_wrn = FreeCAD.Console.PrintWarning

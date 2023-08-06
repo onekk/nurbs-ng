@@ -63,9 +63,9 @@ def ensure_document(doc_name, action=0):
         doc_name (str): document name
         action (int): action to perform if document exist. Defaults to 0 could
             assume these values:
-                0: do nothing
-                1: close and reopen the document with the same name
-                2: delete all objects
+            0: do nothing
+            1: close and reopen the document with the same name
+            2: delete all objects
 
     Returns:
         str: Document name from obj.Name

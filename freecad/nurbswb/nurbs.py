@@ -4,8 +4,11 @@ Inspired from microelly freecad-nurbbs.
 
 Some portions of code are derived from microelly code.
 
-https://en.wikipedia.org/wiki/Non-uniform_rational_B-spline
-http://www.opencascade.com/doc/occt-6.9.0/refman/html/class_geom___b_spline_surface.html
+References:
+    https://en.wikipedia.org/wiki/Non-uniform_rational_B-spline
+    https://forum.freecad.org/viewtopic.php?p=561221#p561221 by Crish_G
+    http://www.opencascade.com/doc/occt-6.9.0 # version number could be different
+      /refman/html/class_geom___b_spline_surface.html
 
 Notes:
     works in new wb scheme
@@ -13,46 +16,75 @@ Notes:
     1) numpy array are stored sequentially for a very fast acces
        see examples/example_nparray.py for some explanation
 
-    2) Crish_G in https://forum.freecad.org/viewtopic.php?p=561221#p561221
+    2) BSplines and NURBS (Non Uniform Rational Bspline Surface)
 
-       In homogeneous coordinates, the poles are 4D : (x, y, z, w)
-       In rational BSplines.Weights are the 'w' coordinates of the poles.
-       So always: len(weights) = len(poles)
+      BSS is a short term for "BSpline Surface"
 
-       Mults are repetition of knots.
-       So always: len(mults) = len(knots).
+      When Weights are different from 1 we have a NURBS, ie the surface
+       is Rational.
+      Rational characteristic is defined in each parametric direction (U, V).
 
-       Most often in Nurbs articles, knots arrays are written WITH knot repetition.
-       In OpenCascade, knots are described by 2 arrays:
-       - knots (without repetition)
-       - mults.
+      Definitions:
+        Poles:
+          Poles are alos called "control points".
 
-       So, same BSpline knot sequence would be written either as:
+        Weights:
+          In homogeneous coordinates, the poles are 4D : (x, y, z, w)
+          In NURBS Weights are the 'w' coordinates of the poles.
+          So always: len(weights) = len(poles)
 
-       knots = [0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0] # Traditional way
+        Knots is a sequence of parameter values that determines where and
+          how Poles affect the NURBS curve.
+          Knot vector should be in non decreasing order.
+          Number of knots = Numpoles + degree + 1.
 
-       or :
+          Most often in Nurbs articles, knots arrays are written WITH knot
+          repetition, in OpenCascade, knots are described by 2 arrays:
+            - knots (without repetition)
+            - multiplicities, see below.
 
-        knots = [0.0, 1.0, 2.0]
-        mults = [3, 1, 3] # OCC and FreeCAD way
+        Multiplicities (Mults) are repetition of knots.
+          So always: len(mults) = len(knots).
+          1 <= Mults(i) <= Degree
 
-    3) From OCCT docs:
-        Creates a non-rational b-spline surface (weights default value is 1.).
+          This knots vector = [0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0] written
+          in Traditional way will became:
+            knots = [0.0, 1.0, 2.0]
+            mults = [3, 1, 3]
 
-        Following conditions must be verified.
-          - 0 < UDegree <= MaxDegree.
-          - UKnots.Length() == UMults.Length() >= 2
-          - UKnots(i) < UKnots(i+1) (Knots are increasing)
-          - 1 <= UMults(i) <= UDegree
-          - On non Uperiodic surface the first and last umultiplicities may be
-            UDegree+1 (this is even recommended if you want the curve to start and
-            finish on the first and last pole).
-           - On Uperiodic surfaces first and last umultiplicities must be the same.
-           - On non-uperiodic surfaces:
-             Poles.ColLength() == Sum(UMults(i)) - UDegree - 1 >= 2
-           - On Uperiodic surfaces Poles.ColLength() == Sum(UMults(i)) except first
-             or last.
-           - Previous conditions for U holds also for V, with the RowLength of poles.
+        Mults could have some special cases, where the knots are regularly
+          spaced in one parametric direction (PD) in other word difference
+          between two consecutive knots is constant.
+
+          - "Uniform": all the mults are equal to 1.
+          - "Quasi-uniform": all the mults are equal to 1, except for first
+             and last knots, and these are equal to Degree + 1.
+          - "Piecewise Bezier": all the mults are equal to Degree except for
+             first and last knots, which are equal to Degree + 1.
+             Resulting surface is a concatenation of Bezier patches in PD.
+
+         In "not periodic" surface:
+           - bounds of knots and mults tables are:  1 < knot < NbKnots
+              where NbKnots is the number of knots of the BSS in parametric
+              direction.
+          - first and last mults may be UDegree+1 (this is recommended if you
+              want the curve to start and finish on the first and last pole).
+          - Poles.ColLength() == Sum(UMults(i)) - UDegree - 1 >= 2 (for U)
+          - Poles.RowLength() == Sum(VMults(i)) - VDegree - 1 >= 2 (for U)
+
+         In "periodic" surfaces:
+          - first and last mults must be the same.
+          - given k periodic knots and p periodic poles in PD:
+              - period is such that: period = Knot(k+1) - Knot(1),
+              - poles and knots tables in PD can be considered as infinite tables,
+                such that:
+                  - Knot(i + k) = Knot(i) + period,
+                  - Pole(i + p) = Pole(i)
+          - Poles.ColLength() == Sum(UMults(i)) except first or last. (for U)
+          - Poles.RowLength() == Sum(VMults(i)) except first or last. (for V)
+
+         Note: Data structure tables for a periodic BSpline surface are more complex
+           than those of a non-periodic one.
 
 Versions:
     v 0.1 - 2023 onekk
@@ -246,17 +278,22 @@ class Nurbs(NurbsObj):
 
         self.add_properties(obj)
 
-        # Nurbs
+        # Base
 
-        obj.knot_u = [0, 0, 0, 0.33, 0.67, 1, 1, 1,]
-        obj.knot_v = [0, 0, 0, 0.33, 0.67, 1, 1, 1,]
-        obj.weights = [1] * (uc * vc)
         obj.model = ["NurbsSurface", "NurbsCylinder", "NurbsSphere",
                      "NurbsTorus",]
+
+        # Nurbs
+
+        # obj.poles =  # Unassigned here
+        obj.weights = [1] * (uc * vc)
         obj.degree_u = 3
         obj.degree_v = 3
+        obj.knot_u = [0, 0, 0, 0.33, 0.67, 1, 1, 1,]
+        obj.knot_v = [0, 0, 0, 0.33, 0.67, 1, 1, 1,]
 
         # Generator
+
         obj.nNodes_u = uc
         obj.nNodes_v = vc
         obj.stepU = 100
@@ -264,9 +301,18 @@ class Nurbs(NurbsObj):
         obj.generatePoles = True
 
         # XYZ
+
         obj.expertMode = False
         obj.polnumber = 0
+        # other properties are stored here
+        # height and radius could be assigned or not.
+        # as example a cylinder and a torus has a radius and an height
+        # a sphere has a radius only
+        # a torus has two radiuses and a height in Z
+        # surfaces has different definition
         obj.Height = 1.0
+        obj.Radius = 200
+        obj.Radius2 = 150
 
         # Helper
         obj.grid = True
@@ -297,7 +343,14 @@ class Nurbs(NurbsObj):
         """
         # not gui editable for now
         for elem in ["polnumber", "polselection", "gridobj",
-                     "polgrid", "polobj", "Height", "Radius"]:
+                     "polgrid", "polobj"]:
+            # 0 to make editable for testing
+            obj.setEditorMode(elem, 2)
+
+    def hide_mod_prop(self, obj):
+        """Hide model dependant properties."""
+        #
+        for elem in ["Height", "Radius", "Radius2"]:
             # 0 to make editable for testing
             obj.setEditorMode(elem, 2)
 
@@ -309,23 +362,32 @@ class Nurbs(NurbsObj):
 
         # Category Nurbs
 
-        obj.addProperty(
-            "App::PropertyFloatList", "knot_u", "Nurbs", "")
-
-        obj.addProperty(
-            "App::PropertyFloatList", "knot_v", "Nurbs", "")
-
-        obj.addProperty(
-            "App::PropertyFloatList", "weights", "Nurbs", "")
+        # Part.BSplineSurface.buildFromPolesMultsKnots
+        # Args:
+        #   poles (sequence of sequence of Base.Vector),
+        #   umults, vmults,
+        #   uknots, vknots,
+        #   uperiodic, vperiodic,
+        #   udegree, vdegree,
+        #   weights (sequence of sequence of float)
 
         obj.addProperty(
             "App::PropertyStringList", "poles", "Nurbs", "")
+
+        obj.addProperty(
+            "App::PropertyFloatList", "weights", "Nurbs", "")
 
         obj.addProperty(
             "App::PropertyInteger", "degree_u", "Nurbs", "")
 
         obj.addProperty(
             "App::PropertyInteger", "degree_v", "Nurbs", "")
+
+        obj.addProperty(
+            "App::PropertyFloatList", "knot_u", "Nurbs", "")
+
+        obj.addProperty(
+            "App::PropertyFloatList", "knot_v", "Nurbs", "")
 
         # Category Generator
 
@@ -353,18 +415,22 @@ class Nurbs(NurbsObj):
             "Activate expert Mode")
 
         obj.addProperty(
-            "App::PropertyInteger", "polnumber",
-            "XYZ", "Length of the Nurbs")
+            "App::PropertyInteger", "polnumber", "XYZ",
+            "Length of the Nurbs")
 
         obj.addProperty("App::PropertyLink", "polobj", "XYZ", "")
         obj.addProperty("App::PropertyLink", "gridobj", "XYZ", "")
         obj.addProperty("App::PropertyLink", "polselection", "XYZ", "")
         obj.addProperty("App::PropertyLink", "polgrid", "XYZ", "")
+
         obj.addProperty(
             "App::PropertyFloat", "Height", "XYZ", "Nurbs Height (Z)")
 
         obj.addProperty(
             "App::PropertyFloat", "Radius", "XYZ", "Nurbs Radius")
+
+        obj.addProperty(
+            "App::PropertyFloat", "Radius2", "XYZ", "Nurbs Radius2")
 
         # Category Helper
 
@@ -404,11 +470,14 @@ class Nurbs(NurbsObj):
 
         if prop == "model":
             print(f"Nurbs model: {fp.model}")
-            if fp.model == "NurbsCylinder":
-                fp.setEditorMode("Height", 0)
+            if fp.model in ("NurbsCylinder", "NurbsSphere", "NurbsTorus"):
                 fp.setEditorMode("Radius", 0)
+            if fp.model in ("NurbsCylinder", "NurbsTorus"):
+                fp.setEditorMode("Height", 0)
+            if fp.model in ("NurbsTorus"):
+                fp.setEditorMode("Radius2", 0)
             else:
-                self.hide_var_prop(fp)
+                self.hide_mod_prop(fp)
 
         if prop == "nNodes_u" and fp.nNodes_u <= fp.degree_u:
             fp.nNodes_u = fp.degree_u + 1
@@ -893,7 +962,7 @@ class Nurbs(NurbsObj):
         elif obj.model == "NurbsSphere":
             rad = 400
             coor = self.SphereCoords2(obj, rad, True)
-            #coor = self.SphereCoords(obj, coor, True)
+            # coor = self.SphereCoords(obj, coor, True)
 
             # CHECK: Why amend knot_u and knot_w for sphere?
             if obj.degree_u == 3:
@@ -1409,6 +1478,7 @@ class Nurbs(NurbsObj):
     def setpointZ(self, u, v, h=0, w=20):
         """Set height and weight of a pole point."""
         #
+        # FIXME: why thi inversion here?
         u, v = v, u
         # self.g[v][u][2]=h
         self.g[v][u][2] = 100 * np.tan(0.5 * np.pi * h / 101)
@@ -1439,7 +1509,7 @@ class Nurbs(NurbsObj):
             print()
 
     def movePoint(self, u, v, dx, dy, dz):
-        """Move relative to ofa pole point."""
+        """Move relative to a pole point."""
         #
         FreeCAD.ActiveDocument.openTransaction(f"move Point {str((u, v, dx, dy, dz))}")
         # EDITED : g is
@@ -1521,7 +1591,7 @@ class Nurbs(NurbsObj):
             for iu in range(uc):
                 try:
                     if (g[iu][iv][0] - g[u][v][0]) ** 2 + (
-                        g[iu][iv][1] - g[u][v][1]) ** 2 <= radius**2:
+                            g[iu][iv][1] - g[u][v][1]) ** 2 <= radius**2:
 
                         g[iu][iv][2] = height
                 except:
@@ -1773,6 +1843,19 @@ def makeNurbs(uc=5, vc=7):
     do.ViewObject.Transparency = 50
 
     return do
+
+
+def nurbs_set_polestring():
+    """Create a polestring to put on Obj.poles property."""
+    pass
+
+
+def nurbs_get_poles():
+    """Create an array from Obj.poles property."""
+    pass
+
+
+# --- Examples and tests
 
 
 def createnurbs():
