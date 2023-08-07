@@ -253,7 +253,7 @@ class Nurbs(NurbsObj):
         obj.Radius2 = 150
 
         # Helper
-        obj.grid = True
+        obj.grid = False
         obj.gridCount = 6
         obj.polpoints = False
 
@@ -282,6 +282,17 @@ class Nurbs(NurbsObj):
             # 0 to make editable for testing
             obj.setEditorMode(elem, vp3)
 
+    def vis_prop1(self, fp, vp1):
+        """Set visibility of properties."""
+        for a in ["degree_u", "degree_v", "poles", "knot_u", "knot_v",
+                  "nNodes_u", "nNodes_v", "weights",]:
+            fp.setEditorMode(a, vp1)
+
+    def vis_prop2(self, fp, vp2):
+        """Set visibility of properties."""
+        for a in ["nNodes_u", "nNodes_v", "stepU", "stepV"]:
+            fp.setEditorMode(a, vp2)
+
     def hide_mod_prop(self, obj):
         """Hide model dependant properties."""
         #
@@ -300,9 +311,9 @@ class Nurbs(NurbsObj):
         # Part.BSplineSurface.buildFromPolesMultsKnots
         # Args:
         #   poles (sequence of sequence of Base.Vector),
-        #   umults, vmults,
+        #   umults, vmults,  # seems to be missing
         #   uknots, vknots,
-        #   uperiodic, vperiodic,
+        #   uperiodic, vperiodic, # seem to be missing
         #   udegree, vdegree,
         #   weights (sequence of sequence of float)
 
@@ -480,8 +491,9 @@ class Nurbs(NurbsObj):
 
     def update(self, fp):
         """Docstring missing."""
+        print("--- Nurbs: update")
         if hasattr(fp, "polobj"):
-            print("-------------------- polobj.set")
+            print("--- polobj.set")
             if fp.polobj is not None:
                 FreeCAD.ActiveDocument.removeObject(fp.polobj.Name)
 
@@ -524,18 +536,7 @@ class Nurbs(NurbsObj):
 
         # TODO: check if these has to be visualized or not
         # set to 2 to not visualize
-        self.set_vr_prop(fp, 0)
-
-    def vis_prop1(self, fp, vp1):
-        """Set visibility of properties."""
-        for a in ["degree_u", "degree_v", "poles", "knot_u", "knot_v",
-                  "nNodes_u", "nNodes_v", "weights",]:
-            fp.setEditorMode(a, vp1)
-
-    def vis_prop2(self, fp, vp2):
-        """Set visibility of properties."""
-        for a in ["nNodes_u", "nNodes_v", "stepU", "stepV"]:
-            fp.setEditorMode(a, vp2)
+        self.set_var_prop(fp, 0)
 
     def create_grid_shape(self, ct=20):
         """Create a grid of BSplineSurface bs with ct lines and rows."""
@@ -569,17 +570,27 @@ class Nurbs(NurbsObj):
             ss = Part.makePolygon(pps)
             sss.append(ss)
 
-        comp = Part.Compound(sss)
-        return comp
+        return sss
 
     def create_grid(self, bs, ct=20):
         """Docstring missing."""
+        print("--- start create_grid ---")
         comp = self.create_grid_shape(ct)
-        grid = Part.show(comp)
+
+        print(dir(self))
+        #print(f"****************** {self.obj.Name}")
+
+        # .addObject("Part::Compound","Compound")
+        # App.activeDocument().Compound.Links =
+
+        for e_idx, elem in enumerate(comp):
+            grid = Part.show(elem, f"grid_elem{e_idx}")
+
+        print("--- end create_grid ---")
         return grid
 
     def create_uv_grid_shape(self):
-        """Create a grid of the poles."""
+        """Create poles grid."""
         #
         bs = self.bs
         sss = []
@@ -640,7 +651,7 @@ class Nurbs(NurbsObj):
                 # if iv != 1:
                 sss.append(ss)
             except:
-                print(("kein polygon fuer", pps2))
+                print((f"CGS: No Polygon for: {pps2}"))
 
         comp = Part.Compound(sss)
 
@@ -650,6 +661,7 @@ class Nurbs(NurbsObj):
 
     def create_uv_grid(self):
         """Show UV grid."""
+        print("--- create_uv_grid called ---")
         comp = self.create_uv_grid_shape()
         gdo = Part.show(comp)
 
@@ -660,7 +672,8 @@ class Nurbs(NurbsObj):
 
     def create_solid(self, bs):
         """Create a solid part with the surface as top."""
-        #
+        # FIXME: from original code, see if is useful in new context
+        print("--- create_solid called ---")
         poles = np.array(bs.getPoles())
         ka, kb, tt = poles.shape
 
@@ -967,7 +980,7 @@ class Nurbs(NurbsObj):
             pass
 
         if debug:
-            print("Knots prior knots insertion")
+            print("Data prior knots insertion")
             print(f"knot_u: {knot_u}")
             print(f"knot_v: {knot_v}")
             print(f"bs.NbUKnots: {bs.NbUKnots}")
@@ -984,24 +997,10 @@ class Nurbs(NurbsObj):
             bs.insertVKnot(knot_v[i], 1, kn_tol)
 
         if debug:
-            print("Knots after knots insertion")
-            # knot_u and knot_v are not affected.
-            print(f"bs.NbUKnots: {bs.NbUKnots}")
-            print(f"bs.NbVKnots: {bs.NbVKnots}")
-
-        if debug:
+            print("Data after knots insertion")
             print(f"Dim nodes U:{o_nNo_u} V:{o_nNo_v}")
             print(f"Len coor: {len(coor)}")
-            print(f"bs.NbUPoles: {bs.NbUPoles}")
-            print(f"bs.NbUPoles: {bs.NbVPoles}")
-
-            if dbg_lists:
-                print(f"bs.getUKnots: {bs.getUKnots()}")
-                print(f"bs.getVKnots: {bs.getVKnots()}")
-                print(f"bs.getUMults: {bs.getUMultiplicities()}")
-                print(f"bs.getVMults: {bs.getVMultiplicities()}")
-
-        if debug:
+            # knot_u and knot_v are not affected.
             t = bs.getPoles()
             print("shape poles", len(t), len(t[0]))
 
@@ -1011,6 +1010,7 @@ class Nurbs(NurbsObj):
 
             ku = [1.0 / (o_nNo_u - 1) * i for i in range(o_nNo_u)]
             kv = [1.0 / (o_nNo_v - 1) * i for i in range(o_nNo_v)]
+
             mu = [3] + [1] * (o_nNo_u - 2) + [3]
             mv = [3] + [1] * (o_nNo_v - 2) + [3]
 
@@ -1069,47 +1069,12 @@ class Nurbs(NurbsObj):
             wgs = [1.0 for i in range(w_num)]
             # np.ones(nNodes_v * (nNodes_u - 1)).tolist()
 
-            # microelly definition see the u and v inverted
-            """
-            bs.buildFromPolesMultsKnots(
-                poles2,
-                [2, 1, 1, 1, 1, 1, 2],
-                [2, 1, 1, 2],
-                [0, 0.2, 0.4, 0.5, 0.7, 0.8, 1],
-                [0, 0.4, 0.6, 1],
-                True,
-                True,
-                3,
-                3,
-                # 1.0 * np.ones(28),
-            )
-            """
-
-        # TODO: check this code commented out by microelly
-        """
-        else:
-            i=0
-            for jj in range(0,nNodes_v):
-                for ii in range(0,nNodes_u):
-
-                    try:
-                        #print("getpole",bs.getPole(jj+1,ii+1))
-                        bs.setPole(jj+1,ii+1,FreeCAD.Vector((coor[i][0],coor[i][1],coor[i][2])),weights[jj,ii])
-                        bs.setWeight(jj+1,ii+1,4)
-                        # print i,FreeCAD.Vector((coor[i][0],coor[i][1],coor[i][2]))
-                        print([ii+1,jj+1,FreeCAD.Vector((coor[i][0],coor[i][1],coor[i][2])),weights[jj,ii]])
-                    except:
-                            print([ii+1,jj+1,FreeCAD.Vector((coor[i][0],coor[i][1],coor[i][2])),weights[jj,ii]])
-
-                            sayexc("error setPols ii,jj:"+str([ii+1,jj+1]))
-                            print("getpole exc reverse --",bs.getPole(jj+1,ii+1))
-                            print("getpole exc --",bs.getPole(ii+1,jj+1))
-                    i=i+1;
-        """
+        if debug:
+            debug_spline(bs, "CreateSurface", 0)
 
         if debug:
+            print("-- CreateSurface: Debug data passed to buildFPMK")
             print(f"poles2 ({len(poles2)}) shape: {poles2.shape}")
-            # print(f"poles2 : {poles2}")
             print(f"mu ({len(mu)}): {mu}")
             print(f"mv ({len(mv)}): {mv}")
             print(f"ku ({len(ku)}): {ku}")
@@ -1132,8 +1097,10 @@ class Nurbs(NurbsObj):
         #       - Check all occurencies of buildFromPolesMultsKnots as
         #         parameters are swapped
 
+        bs_poles = npa_to_pts(poles2)
+
         bs.buildFromPolesMultsKnots(
-            poles2, mu, mv, ku, kv, False, False, 3, 3)  # , wgs)
+            bs_poles, mu, mv, ku, kv, False, False, 3, 3)  # , wgs)
 
         # -----------------------------------------
         # --- Assign poles (and weight) to obj
@@ -1151,14 +1118,16 @@ class Nurbs(NurbsObj):
         # -- create aux parts
         # ----------------------------------------
 
+        print("--- aux parts ---")
         # Solid
 
         if obj.solid:
             obj.Shape = self.create_solid(bs)
         else:
-            if FreeCAD.ParamGet("User parameter:Plugins/nurbs").GetBool(
-                "createNurbsShape", True
-            ):
+            if FreeCAD.ParamGet(
+                    "User parameter:Plugins/nurbs").GetBool(
+                        "createNurbsShape", True):
+
                 obj.Shape = bs.toShape()
 
         # Grids
@@ -1253,7 +1222,7 @@ class Nurbs(NurbsObj):
             obj.Shape = sol
 
         # create a pole grid with spines
-
+        print("--- aux parts 2 ---")
         # vis = False
         vis = True
 
@@ -1305,7 +1274,7 @@ class Nurbs(NurbsObj):
                 round(endtime - comptime, 2),
             )
         )
-
+        # print("--- aux parts end ---")
         return polesobj
 
     @staticmethod
@@ -1346,7 +1315,7 @@ class Nurbs(NurbsObj):
         try:
             rc = self.bs
         except:
-            print("BSpline nicht mehr vorhanden, muss neu berechnet werden ....")
+            print("BSPline no longer exists needs to be recalculated ....")
             # uc = self.obj2.nNodes_v
             # vc = self.obj2.nNodes_u
             self.createSurface(self.obj2, self.obj2.poles)
@@ -1680,8 +1649,8 @@ class Nurbs(NurbsObj):
         # FreeCAD.ActiveDocument.commitTransaction()
 
     def addS(self, vp):
-        """Add harte kante links, weicher uebergang, harte kante rechts."""
-        #
+        """Add hard edge on left Soft transition, hard edge on right."""
+        # TODO: check docstring auto translated from german
         FreeCAD.ActiveDocument.openTransaction("add vertical S " + str(vp))
 
         # uc = self.obj2.nNodes_u
@@ -1750,7 +1719,8 @@ class Nurbs(NurbsObj):
         except:
             pass
 
-        print((pole1, pole2))
+        print(f"showSel: {pole1, pole2}")
+
         [u1, v1] = pole1
         [u2, v2] = pole2
 
@@ -1774,7 +1744,7 @@ class Nurbs(NurbsObj):
         self.obj2.polselection = pols
 
 
-def makeNurbs(uc=5, vc=7):
+def create_nurbs_do(uc=5, vc=7):
     """Docstring missing."""
     do = FreeCAD.ActiveDocument.addObject("Part::FeaturePython", "Nurbs")
     do.Label = "Nurbs generated"
@@ -1799,12 +1769,53 @@ def nurbs_get_poles():
     pass
 
 
+def npa_to_pts(poles, dbg_p=False):
+    """Create an array of Vectors from a np shaped array.
+
+    Args:
+        poles (np_array): np shaped array
+        dbg_p (bool): print debug info. Defaults to False
+    """
+    #
+    if dbg_p is True:
+        print(f"Array received: {poles}")
+        print(f"Array Length: {len(poles)}")
+    #
+    r_poles = []
+    ka, kb, tt = poles.shape
+    if dbg_p is True:
+        print(f"p_row: {ka}, p_col: {kb}, p_tt: {tt}")
+
+    for n in range(ka):
+        pts = [FreeCAD.Vector(tuple(p)) for p in poles[n]]
+        r_poles.append(pts)
+
+    if dbg_p is True:
+        print(f"Returned pole list: {r_poles}")
+
+    return r_poles
+
+
+def debug_spline(bs, dbg_nm="Surface", dbg_lev=0):
+    """Debug BSplineSurface."""
+    print(f"--- Debug BSplineSurface {dbg_nm}")
+    print(f"bs.NbUPoles: {bs.NbUPoles}")
+    print(f"bs.NbUPoles: {bs.NbVPoles}")
+    print(f"bs.NbUKnots: {bs.NbUKnots}")
+    print(f"bs.NbVKnots: {bs.NbVKnots}")
+
+    if dbg_lev > 0:
+        print(f"bs.getUKnots: {bs.getUKnots()}")
+        print(f"bs.getVKnots: {bs.getVKnots()}")
+        print(f"bs.getUMults: {bs.getUMultiplicities()}")
+        print(f"bs.getVMults: {bs.getVMultiplicities()}")
+
 # --- Examples and tests
 
 
 def createnurbs():
     """Docstring missing."""
-    nobj = makeNurbs(6, 10)
+    nobj = create_nurbs_do(6, 10)
     nobj.solid = False
     nobj.base = False
     # nobj.grid=False
@@ -1849,17 +1860,38 @@ def createnurbs():
     nobj.polselection.ViewObject.hide()
 
 
-def testRandomB():
+def testSurface(def_name=None, c_rand=True, suffix=None, clean_doc=True):
     """Docstring missing."""
-    nd = FreeCAD.newDocument("Unnamed")
-    FreeCAD.setActiveDocument(nd.Name)
-    FreeCAD.ActiveDocument = FreeCAD.getDocument(nd.Name)
-    FreeCADGui.ActiveDocument = FreeCADGui.getDocument(nd.Name)
+    #
+    if def_name is None:
+        def_name = "Nurbs_TestSurface"
 
-    na = 20
-    b = 10
+    if suffix is None:
+        doc_name = f"{def_name}"
+    else:
+        doc_name = f"{def_name}_{suffix}"
 
-    nobj = makeNurbs(b, na)
+    if clean_doc is True:
+        cl_f = 2
+    else:
+        cl_f = 0
+
+    out_doc = ensure_document(doc_name, cl_f)
+
+    dest_doc = FreeCAD.activeDocument()
+
+    FreeCAD.setActiveDocument(out_doc)
+
+    print("--- Test Surface")
+
+    uc = 5
+    vc = 5
+
+    pass1 = 10
+    pass2 = 10
+
+    nobj = create_nurbs_do(uc, vc)
+    nobj.model = "NurbsSurface"
 
     nobj.solid = False
     nobj.base = False
@@ -1869,49 +1901,53 @@ def testRandomB():
     ps = nobj.Proxy.getPoints()
 
     ps = np.array(ps)
-    ps.resize(na, b, 3)
+    ps.resize(vc, uc, 3)
 
-    for k0 in range(10):
-        k = random.randint(0, na - 6)
-        l = random.randint(1, b - 1)
+    # modified retrieving of ps using numpy indexing
+    if c_rand is True:
+        # first loop
+        for k0 in range(pass1):
+            k = random.randint(0, vc - 6)
+            l = random.randint(1, uc - 1)
 
-        for j in range(3):
-            ps[k + j][l][2] += 60
+            for j in range(3):
+                ps[k + j, l, 2] += 60
 
-        rj = random.randint(0, 2)
+            rj = random.randint(0, 2)
 
-        print((k, rj))
+            print(f"Trc (k, rj): {k},  {rj}")
 
-        for j in range(rj):
-            ps[k + 3 + j][l][2] += 60
+            for j in range(rj):
+                ps[k + 3 + j][l][2] += 60
+        # second loop
+        for k0 in range(pass2):
+            k = random.randint(0, vc - 5)
+            l = random.randint(1, uc - 1)
 
-    for k0 in range(10):
-        k = random.randint(0, na - 5)
-        l = random.randint(1, b - 1)
+            for j in range(2):
+                ps[k + j, l, 2] += 30
 
-        for j in range(2):
-            ps[k + j][l][2] += 30
+            rj = random.randint(0, 2)
 
-        rj = random.randint(0, 2)
+            print(f"Trc (k, rj): {k},  {rj}")
 
-        print((k, rj))
+            for j in range(rj):
+                ps[k + 2 + j][l][2] += 30
 
-        for j in range(rj):
-            ps[k + 2 + j][l][2] += 30
-
-    ps.resize(na * b, 3)
+    ps.resize(vc * uc, 3)
 
     nobj.Proxy.togrid(ps)
-    nobj.Proxy.elevateVline(2, 0)
+    # nobj.Proxy.elevateVline(2, 0)
 
     nobj.Proxy.updatePoles()
     nobj.Proxy.showGriduv()
 
+    # why these variables?
     # FreeCAD.a = nobj
     # FreeCAD.ps = ps
 
-    FreeCADGui.activeDocument().activeView().viewAxonometric()
-    FreeCADGui.SendMsgToActiveView("ViewFit")
+    dest_doc.recompute()
+    setview(out_doc, 1)
 
 
 def testCylinder(def_name=None, c_rand=True, suffix=None, clean_doc=True):
@@ -1946,14 +1982,14 @@ def testCylinder(def_name=None, c_rand=True, suffix=None, clean_doc=True):
 
     FreeCAD.setActiveDocument(out_doc)
 
-    print("--- Test Random Cylinder ---")
+    print("--- Test Cylinder")
 
     uc = 10  # 30
     vc = 10  # 30
     pass1 = 25
     pass2 = 10
 
-    nobj = makeNurbs(uc, vc)
+    nobj = create_nurbs_do(uc, vc)
     nobj.model = "NurbsCylinder"
 
     nobj.solid = False
@@ -1971,6 +2007,7 @@ def testCylinder(def_name=None, c_rand=True, suffix=None, clean_doc=True):
 
     # modified retrieving of ps using numpy indexing
     if c_rand is True:
+        # first loop
         for k0 in range(pass1):
             k = random.randint(0, uc - 3)
             l = random.randint(1, vc - 1)
@@ -2080,7 +2117,7 @@ def testSphere(def_name=None, c_rand=True, suffix=None, clean_doc=True):
     pass1 = 15
     pass2 = 10
 
-    nobj = makeNurbs(uc, vc)
+    nobj = create_nurbs_do(uc, vc)
     nobj.model = "NurbsSphere"
 
     nobj.solid = False
@@ -2195,7 +2232,7 @@ def testTorus(def_name=None, c_rand=True, suffix=None, clean_doc=True):
     uc = 7
     vc = 4
 
-    nobj = makeNurbs(uc, vc)
+    nobj = create_nurbs_do(uc, vc)
     nobj.model = "NurbsTorus"
 
     nobj.solid = False
@@ -2258,36 +2295,6 @@ def testTorus(def_name=None, c_rand=True, suffix=None, clean_doc=True):
     FreeCADGui.SendMsgToActiveView("ViewFit")
 
 
-def runtest():
-    """Docstring missing."""
-    # TODO: use ensure_document()
-    try:
-        FreeCAD.closeDocument("Unnamed")
-    except:
-        pass
-
-    if FreeCAD.ActiveDocument is None:
-        FreeCAD.newDocument("Unnamed")
-        FreeCAD.setActiveDocument("Unnamed")
-        FreeCAD.ActiveDocument = FreeCAD.getDocument("Unnamed")
-        FreeCADGui.ActiveDocument = FreeCADGui.getDocument("Unnamed")
-
-    vc = 10
-    uc = 10
-
-    nobj = makeNurbs(uc, vc)
-
-    nobj.solid = False
-    nobj.base = False
-    ps = nobj.Proxy.getPoints()
-    nobj.Proxy.togrid(ps)
-    nobj.Proxy.updatePoles()
-    nobj.Proxy.showGriduv()
-
-    # dest_doc.recompute()
-    # setview(out_doc, 1)
-
-
 def runtcn():
     """Run test cylinder with noise."""
     testCylinder(None, True, "noisy", False)
@@ -2300,13 +2307,19 @@ def runtcp():
 
 def runtest2():
     """Docstring missing."""
-    testRandomB()  # OK
+    # Surface without noise.
+    testSurface(None, False, "plain", True)  # OK
+    # Surface with noise.
+    # testSurface(None, True, "plain", True)  # OK
+
     # Cylinder with random noise
     # testCylinder(None, True, "noisy", False)  # OK
     # Cylinder without noise.
     # testCylinder(None, False, "plain", True)  # OK
+
     # Test sphere
     # testSphere(None, False, "plain", False)  # OK
+
     # Test torus
     # testTorus(None, True, "noisy", False)  # FAIL
 
